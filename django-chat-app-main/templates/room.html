@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 20%;
+      background-color: #f1f1f1;
+      border-right: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .chat-display {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background-color: #fff;
+      border-left: 1px solid #ccc;
+      border-right: 1px solid #ccc;
+    }
+
+    .right-panel {
+      width: 20%;
+      background-color: #f9f9f9;
+      border-left: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .container {
+      border: 2px solid #dedede;
+      border-radius: 5px;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    .sender-message {
+      background-color: #d4f1f4;
+      border-color: #a3d2d4;
+    }
+
+    .receiver-message {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+
+    .time-right {
+      float: right;
+      color: #aaa;
+    }
+
+    .time-left {
+      float: left;
+      color: #999;
+    }
+
+    .message-input {
+      border-top: 1px solid #ccc;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+
+    .message-input input[type=text] {
+      width: 85%;
+      padding: 12px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .message-input input[type=submit] {
+      width: 12%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .message-input input[type=submit]:hover {
+      background-color: #45a049;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+    integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+  <div class="sidebar">
+    <h3>Participants</h3>
+    <p>{{username}}</p>
+  </div>
+
+  <div class="main">
+    <h2 style="padding: 10px;">{{room}} - DjChat</h2>
+
+    <div id="display" class="chat-display">
+    </div>
+
+    <div class="message-input">
+      <form id="post-form">
+        {% csrf_token %}
+        <input type="hidden" name="username" id="username" value="{{username}}" />
+        <input type="hidden" name="room_id" id="room_id" value="{{room_details.id}}" />
+        <input type="text" name="message" id="message" placeholder="Type a message..." />
+        <input type="submit" value="Send">
+      </form>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <h3>Room Details</h3>
+    <p>ID: {{room_details.id}}</p>
+    <p>Created: {{room_details.created_at}}</p>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+
+      setInterval(function () {
+        $.ajax({
+          type: 'GET',
+          url: "/getMessages/{{room}}/",
+          success: function (response) {
+            $("#display").empty();
+            for (var key in response.messages) {
+              const messageClass = response.messages[key].user === "{{username}}" ? "sender-message" : "receiver-message";
+              const temp = `
+                <div class='container ${messageClass}'>
+                  <b>${response.messages[key].user}</b>
+                  <p>${response.messages[key].value}</p>
+                  <span class='time-left'>${response.messages[key].date}</span>
+                </div>`;
+              $("#display").append(temp);
+            }
+          },
+          error: function (response) {
+            alert('An error occurred');
+          }
+        });
+      }, 1000);
+    });
+
+    $(document).on('submit', '#post-form', function (e) {
+      e.preventDefault();
+
+      $.ajax({
+        type: 'POST',
+        url: '/send',
+        data: {
+          username: $('#username').val(),
+          room_id: $('#room_id').val(),
+          message: $('#message').val(),
+          csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val(),
+        },
+        success: function () {
+          document.getElementById('message').value = '';
+        }
+      });
+    });
+  </script>
+
+</body>
+
+</html>
